@@ -121,6 +121,7 @@
   
   // สร้าง array ของชื่อร้าน
   const shopList = snapshot.docs.map(doc => doc.id);
+  console.log(shopList);
 
   // เคลียร์ข้อมูลเดิมที่แสดงอยู่
   tableList.innerHTML = "";
