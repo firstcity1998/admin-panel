@@ -133,24 +133,55 @@
       });
     }
 
-    function renderTable(id, data, shop) {
-      const div = document.createElement("div");
-      div.className = "table-card";
-      div.innerHTML = `
-        <div><strong>โต๊ะ ${id}</strong></div>
-        <div style="margin: 6px 0;">สถานะ: <b>${data.status}</b></div>
-        <button class="status-btn available" onclick="updateStatus('${id}', 'available', '${shop}')">ว่าง</button>
-        <button class="status-btn reserved" onclick="updateStatus('${id}', 'reserved', '${shop}')">จอง</button>
-        <button class="status-btn blocked" onclick="updateStatus('${id}', 'blocked', '${shop}')">บล็อก</button>
-      `;
-      return div;
-    }
+   function renderTable(id, data, shop) {
+  const div = document.createElement("div");
+  div.className = "table-card";
+
+  // ดึงชื่อผู้จอง ถ้ามี
+  const reservedName = data.status === "reserved" && data.reservedBy?.displayName
+    ? data.reservedBy.displayName
+    : "-";
+
+ // ✅ แปลง timestamp จาก Firestore เป็นวันเวลาแบบไทย
+  let timeText = "";
+  if (data.status === "reserved" && data.timestamp?.toDate) {
+    const ts = data.timestamp.toDate();
+    timeText = ts.toLocaleString("th-TH", {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  div.innerHTML = `
+    <div><strong>โต๊ะ ${id}</strong></div>
+    <div style="margin: 6px 0;">สถานะ: <b>${data.status}</b></div>
+    <div style="font-size: 14px; color: #facc15;">ชื่อผู้จอง: ${reservedName}</div>
+    ${timeText ? `<div style="font-size: 12px; color: #ccc;">เวลาจอง: ${timeText}</div>` : ""}
+    <button class="status-btn available" onclick="updateStatus('${id}', 'available', '${shop}')">ว่าง</button>
+    <button class="status-btn reserved" onclick="updateStatus('${id}', 'reserved', '${shop}')">จอง</button>
+    <button class="status-btn blocked" onclick="updateStatus('${id}', 'blocked', '${shop}')">บล็อก</button>
+  `;
+
+  return div;
+}
+
 
     function updateStatus(id, status, shop) {
-      db.collection("restaurants").doc(shop).collection("tables").doc(id).update({ status })
-        .then(() => console.log(`✅ Updated ${shop} โต๊ะ ${id} เป็น ${status}`))
-        .catch(err => alert("❌ อัปเดตไม่สำเร็จ: " + err.message));
-    }
+  const updateData = { status };
+
+  // ✅ ถ้าสถานะไม่ใช่ reserved ให้ลบ reservedBy ออก
+  if (status !== "reserved") {
+    updateData.reservedBy = firebase.firestore.FieldValue.delete();
+    updateData.timestamp = firebase.firestore.FieldValue.delete();
+  }
+
+  db.collection("restaurants").doc(shop).collection("tables").doc(id).update(updateData)
+    .then(() => console.log(`✅ Updated ${shop} โต๊ะ ${id} เป็น ${status}`))
+    .catch(err => alert("❌ อัปเดตไม่สำเร็จ: " + err.message));
+}
   </script>
 
 </body>
