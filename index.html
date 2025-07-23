@@ -66,34 +66,34 @@
     let shopId = null;
 
     auth.onAuthStateChanged(async user => {
-      if (user) {
-        const uid = user.uid;
-        const adminDoc = await db.collection("admins").doc(uid).get();
+  if (user) {
+    const uid = user.uid;
+    const adminDoc = await db.collection("admins").doc(uid).get();
 
-        if (!adminDoc.exists) {
-          alert("❌ คุณไม่มีสิทธิ์เข้าถึงระบบนี้");
-          auth.signOut();
-          return;
-        }
+    if (!adminDoc.exists) {
+      alert("❌ คุณไม่มีสิทธิ์เข้าถึงระบบนี้");
+      auth.signOut();
+      return;
+    }
 
-        const { role, shop } = adminDoc.data();
+    const { role, shop } = adminDoc.data();
 
-        loginSection.style.display = "none";
-        adminPanel.style.display = "block";
+    loginSection.style.display = "none";
+    adminPanel.style.display = "block";
 
-        if (role === "superadmin") {
-          adminTitle.textContent = "จัดการโต๊ะทุกสาขา (Superadmin)";
-          loadAllShops(["all-in", "vyse"]); // เพิ่มร้านของคุณตรงนี้
-        } else {
-          shopId = shop;
-          adminTitle.textContent = `จัดการโต๊ะร้าน: ${shopId}`;
-          loadTables(shopId);
-        }
-      } else {
-        loginSection.style.display = "block";
-        adminPanel.style.display = "none";
-      }
-    });
+    if (role === "superadmin") {
+      adminTitle.textContent = "จัดการโต๊ะทุกสาขา (Superadmin)";
+      loadAllShops();  // ดึงร้านทั้งหมดจาก Firestore
+    } else {
+      shopId = shop;
+      adminTitle.textContent = `จัดการโต๊ะร้าน: ${shopId}`;
+      loadTables(shopId);
+    }
+  } else {
+    loginSection.style.display = "block";
+    adminPanel.style.display = "none";
+  }
+});
 
     function login() {
       const email = document.getElementById("email").value;
@@ -115,23 +115,34 @@
       });
     }
 
-    function loadAllShops(shopList) {
-      tableList.innerHTML = "";
-      shopList.forEach(shop => {
-        const section = document.createElement("div");
-        const title = document.createElement("h3");
-        title.textContent = `ร้าน: ${shop}`;
-        section.appendChild(title);
+   async function loadAllShops() {
+  // ดึงร้านทั้งหมดจาก Firestore
+  const snapshot = await db.collection("restaurants").get(); // ดึงข้อมูลจาก collection "restaurants"
+  
+  // สร้าง array ของชื่อร้าน
+  const shopList = snapshot.docs.map(doc => doc.id);
 
-        db.collection("restaurants").doc(shop).collection("tables").onSnapshot(snapshot => {
-          snapshot.forEach(doc => {
-            section.appendChild(renderTable(doc.id, doc.data(), shop));
-          });
-        });
+  // เคลียร์ข้อมูลเดิมที่แสดงอยู่
+  tableList.innerHTML = "";
 
-        tableList.appendChild(section);
+  // วนลูปเพื่อโหลดข้อมูลโต๊ะของแต่ละร้าน
+  shopList.forEach(shop => {
+    const section = document.createElement("div");
+    const title = document.createElement("h3");
+    title.textContent = `ร้าน: ${shop}`;
+    section.appendChild(title);
+
+    // ดึงข้อมูลโต๊ะจากร้านนั้น
+    db.collection("restaurants").doc(shop).collection("tables").onSnapshot(snapshot => {
+      snapshot.forEach(doc => {
+        section.appendChild(renderTable(doc.id, doc.data(), shop));  // แสดงข้อมูลโต๊ะในร้านนั้น
       });
-    }
+    });
+
+    tableList.appendChild(section);
+  });
+}
+
 
    function renderTable(id, data, shop) {
   const div = document.createElement("div");
