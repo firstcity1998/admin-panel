@@ -46,46 +46,54 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
   <script>
-    fetch('/firebase-config')
-  .then(res => res.json())
-  .then(config => {
-    firebase.initializeApp(config);
-    
-    // ✨ ย้ายพวกการเชื่อม auth/firestore มาตรงนี้หลัง initialize
-    window.auth = firebase.auth();
-    window.db = firebase.firestore();
+    const firebaseConfig = {
+      apiKey: "AIzaSyByEiQP04T_RxQ88CMZRWxUMI_r9ra5ub4",
+      authDomain: "purdto-platform.firebaseapp.com",
+      projectId: "purdto-platform",
+      messagingSenderId: "670687363597",
+      appId: "1:670687363597:web:dd96a5936c87ad27dd0b44"
+    };
 
-    // ✅ เริ่ม auth listener หลัง firebase ถูก initialize
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    const loginSection = document.getElementById("loginSection");
+    const adminPanel = document.getElementById("adminPanel");
+    const adminTitle = document.getElementById("adminTitle");
+    const tableList = document.getElementById("tableList");
+
+    let shopId = null;
+
     auth.onAuthStateChanged(async user => {
-      if (user) {
-        const uid = user.uid;
-        const adminDoc = await db.collection("admins").doc(uid).get();
+  if (user) {
+    const uid = user.uid;
+    const adminDoc = await db.collection("admins").doc(uid).get();
 
-        if (!adminDoc.exists) {
-          alert("❌ คุณไม่มีสิทธิ์เข้าถึงระบบนี้");
-          auth.signOut();
-          return;
-        }
+    if (!adminDoc.exists) {
+      alert("❌ คุณไม่มีสิทธิ์เข้าถึงระบบนี้");
+      auth.signOut();
+      return;
+    }
 
-        const { role, shop } = adminDoc.data();
+    const { role, shop } = adminDoc.data();
 
-        loginSection.style.display = "none";
-        adminPanel.style.display = "block";
+    loginSection.style.display = "none";
+    adminPanel.style.display = "block";
 
-        if (role === "superadmin") {
-          adminTitle.textContent = "จัดการโต๊ะทุกสาขา (Superadmin)";
-          loadAllShops();
-        } else {
-          shopId = shop;
-          adminTitle.textContent = `จัดการโต๊ะร้าน: ${shopId}`;
-          loadTables(shopId);
-        }
-      } else {
-        loginSection.style.display = "block";
-        adminPanel.style.display = "none";
-      }
-    });
-  });
+    if (role === "superadmin") {
+      adminTitle.textContent = "จัดการโต๊ะทุกสาขา (Superadmin)";
+      loadAllShops();  // ดึงร้านทั้งหมดจาก Firestore
+    } else {
+      shopId = shop;
+      adminTitle.textContent = `จัดการโต๊ะร้าน: ${shopId}`;
+      loadTables(shopId);
+    }
+  } else {
+    loginSection.style.display = "block";
+    adminPanel.style.display = "none";
+  }
+});
 
     function login() {
       const email = document.getElementById("email").value;
@@ -189,5 +197,5 @@
   </script>
 
 </body>
-</html>
+</html>   
 
