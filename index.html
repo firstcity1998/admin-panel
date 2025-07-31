@@ -180,7 +180,8 @@
   return div;
 }
 
- function updateStatus(id, status, shop) {
+
+    function updateStatus(id, status, shop) {
   const updateData = { status };
 
   // ✅ ถ้าสถานะไม่ใช่ reserved ให้ลบ reservedBy ออก
@@ -190,7 +191,7 @@
   }
 
   db.collection("restaurants").doc(shop).collection("tables").doc(id).update(updateData)
-    .then(() => console.log(✅ Updated ${shop} โต๊ะ ${id} เป็น ${status}))
+    .then(() => console.log(`✅ Updated ${shop} โต๊ะ ${id} เป็น ${status}`))
     .catch(err => alert("❌ อัปเดตไม่สำเร็จ: " + err.message));
 }
   </script>
