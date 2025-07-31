@@ -180,8 +180,25 @@
   return div;
 }
 
+function updateReservedName(tableId, shop) {
+  const newReservedName = document.getElementById(`newReservedName${tableId}`).value.trim();
 
-    function updateStatus(id, status, shop) {
+  if (newReservedName) {
+    const tableRef = db.collection("restaurants").doc(shop).collection("tables").doc(tableId);
+    tableRef.update({
+      "reservedBy.displayName": newReservedName
+    })
+    .then(() => {
+      document.getElementById(`reservedName${tableId}`).textContent = newReservedName;  // อัปเดตแสดงชื่อใหม่
+      console.log(`✅ Updated reserved name for table ${tableId}`);
+    })
+    .catch(err => alert("❌ อัปเดตชื่อผู้จองไม่สำเร็จ: " + err.message));
+  } else {
+    alert("กรุณากรอกชื่อผู้จองใหม่.");
+  }
+}
+
+function updateStatus(id, status, shop) {
   const updateData = { status };
 
   // ✅ ถ้าสถานะไม่ใช่ reserved ให้ลบ reservedBy ออก
