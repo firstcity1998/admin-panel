@@ -205,7 +205,7 @@ document.getElementById("datePicker").addEventListener("change", () => {
     if (!name) return; // ถ้ายกเลิก prompt
 
     updateData.reservedBy = { displayName: name };
-    updateData.timestamp = firebase.firestore.Timestamp.now();
+    updateData.timestamp = firebase.firestore.Timestamp.fromDate(bookingDate);
   } else {
     updateData.reservedBy = firebase.firestore.FieldValue.delete();
     updateData.timestamp = firebase.firestore.FieldValue.delete();
