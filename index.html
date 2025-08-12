@@ -201,8 +201,24 @@ document.getElementById("datePicker").addEventListener("change", () => {
 
   // ✅ ถ้าสถานะไม่ใช่ reserved ให้ลบ reservedBy ออก
   if (status === "reserved") {
-    const name = prompt("กรุณาใส่ชื่อผู้จอง:");
-    if (!name) return; // ถ้ายกเลิก prompt
+  const name = prompt("กรุณาใส่ชื่อผู้จอง:");
+  if (!name) return; // ถ้ายกเลิก prompt
+
+  // ดึงวันที่ที่เลือกจากปฏิทิน
+  const selectedDate = document.getElementById("datePicker").value;
+
+  // สร้าง Date object ที่มีเวลาเป็นตอนเริ่มวัน (สามารถเพิ่มเวลาถ้าต้องการ)
+  const bookingDate = new Date(selectedDate + "T00:00:00");
+
+  // เช็กว่าล่วงหน้าไม่เกิน 7 วัน
+  const today = new Date();
+  const maxDate = new Date();
+  maxDate.setDate(today.getDate() + 7);
+
+  if (bookingDate < today || bookingDate > maxDate) {
+    alert("❌ จองได้ล่วงหน้าไม่เกิน 7 วัน");
+    return;
+  }
 
     updateData.reservedBy = { displayName: name };
     updateData.timestamp = firebase.firestore.Timestamp.fromDate(bookingDate);
