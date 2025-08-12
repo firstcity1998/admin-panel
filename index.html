@@ -138,28 +138,23 @@ document.getElementById("datePicker").addEventListener("change", () => {
   const end = new Date(selectedDate + "T23:59:59");
 
   db.collection("restaurants").doc(shop).collection("tables")
-    .where("timestamp", ">=", firebase.firestore.Timestamp.fromDate(start))
-    .where("timestamp", "<=", firebase.firestore.Timestamp.fromDate(end))
     .onSnapshot(snapshot => {
       tableList.innerHTML = "";
       snapshot.forEach(doc => {
-        tableList.appendChild(renderTable(doc.id, doc.data(), shop));
-      });
-    });
-}
+        const data = doc.data();
 
-  function loadTables(shop) {
-  const selectedDate = document.getElementById("datePicker").value;
-  const start = new Date(selectedDate + "T00:00:00");
-  const end = new Date(selectedDate + "T23:59:59");
+        // ถ้ามีการจอง ให้เช็กว่าตรงกับวันที่เลือกไหม
+        if (data.timestamp?.toDate) {
+          const ts = data.timestamp.toDate();
+          if (ts >= start && ts <= end) {
+            tableList.appendChild(renderTable(doc.id, data, shop)); // จองในวันนั้น
+            return;
+          }
+        }
 
-  db.collection("restaurants").doc(shop).collection("tables")
-    .where("timestamp", ">=", firebase.firestore.Timestamp.fromDate(start))
-    .where("timestamp", "<=", firebase.firestore.Timestamp.fromDate(end))
-    .onSnapshot(snapshot => {
-      tableList.innerHTML = "";
-      snapshot.forEach(doc => {
-        tableList.appendChild(renderTable(doc.id, doc.data(), shop));
+        // ถ้าไม่มีการจองในวันนั้น → แสดงเป็นว่าง
+        const newData = { ...data, status: "available" };
+        tableList.appendChild(renderTable(doc.id, newData, shop));
       });
     });
 }
