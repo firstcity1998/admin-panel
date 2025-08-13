@@ -35,18 +35,15 @@
   </div>
 
   <div id="adminPanel" style="display:none;">
-  <h1 id="adminTitle">กำลังโหลดร้าน...</h1>
-  
-  <!-- ปฏิทินเลือกวันที่ -->
+    <h1 id="adminTitle">กำลังโหลดร้าน...</h1>
+    <!-- ปฏิทินเลือกวันที่ -->
   <label style="display:block; text-align:center; margin-top:10px;">
     เลือกวันที่:
     <input type="date" id="datePicker" style="background-color:#333; color:white; text-align:center;">
   </label>
-
-  <button onclick="logout()" style="background-color:#f44336;">ออกจากระบบ</button>
-  <div id="tableList" class="table-list"></div>
-</div>
-
+    <button onclick="logout()" style="background-color:#f44336;">ออกจากระบบ</button>
+    <div id="tableList" class="table-list"></div>
+  </div>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -114,49 +111,42 @@
       auth.signOut();
     }
 
-    // ฟังก์ชันคืนค่าวันที่ในรูปแบบ YYYY-MM-DD
-function getTodayDate() {
-  const today = new Date();
-  return today.toISOString().split("T")[0];
-}
-
-// ตั้งค่าวันปัจจุบันเป็นค่าเริ่มต้นของปฏิทิน
-document.getElementById("datePicker").value = getTodayDate();
-
-// เมื่อมีการเปลี่ยนวันที่ ให้โหลดข้อมูลใหม่
-document.getElementById("datePicker").addEventListener("change", () => {
-  if (shopId) {
-    loadTables(shopId);
-  } else {
-    loadAllShops();
-  }
-});
-
     function loadTables(shop) {
-  const selectedDate = document.getElementById("datePicker").value;
-  const start = new Date(selectedDate + "T00:00:00");
-  const end = new Date(selectedDate + "T23:59:59");
+      db.collection("restaurants").doc(shop).collection("tables").onSnapshot(snapshot => {
+        tableList.innerHTML = "";
+        snapshot.forEach(doc => {
+          tableList.appendChild(renderTable(doc.id, doc.data(), shop));
+        });
+      });
+    }
 
-  db.collection("restaurants").doc(shop).collection("tables")
-    .onSnapshot(snapshot => {
-      tableList.innerHTML = "";
+   async function loadAllShops() {
+  // ดึงร้านทั้งหมดจาก Firestore
+  const snapshot = await db.collection("restaurants").get(); // ดึงข้อมูลจาก collection "restaurants"
+  
+  // สร้าง array ของชื่อร้าน
+  const shopList = snapshot.docs.map(doc => doc.id);
+  console.log(shopList);
+
+  // เคลียร์ข้อมูลเดิมที่แสดงอยู่
+  tableList.innerHTML = "";
+
+  // วนลูปเพื่อโหลดข้อมูลโต๊ะของแต่ละร้าน
+  shopList.forEach(shop => {
+    const section = document.createElement("div");
+    const title = document.createElement("h3");
+    title.textContent = `ร้าน: ${shop}`;
+    section.appendChild(title);
+
+    // ดึงข้อมูลโต๊ะจากร้านนั้น
+    db.collection("restaurants").doc(shop).collection("tables").onSnapshot(snapshot => {
       snapshot.forEach(doc => {
-        const data = doc.data();
-
-        // ถ้ามีการจอง ให้เช็กว่าตรงกับวันที่เลือกไหม
-        if (data.timestamp?.toDate) {
-          const ts = data.timestamp.toDate();
-          if (ts >= start && ts <= end) {
-            tableList.appendChild(renderTable(doc.id, data, shop)); // จองในวันนั้น
-            return;
-          }
-        }
-
-        // ถ้าไม่มีการจองในวันนั้น → แสดงเป็นว่าง
-        const newData = { ...data, status: "available" };
-        tableList.appendChild(renderTable(doc.id, newData, shop));
+        section.appendChild(renderTable(doc.id, doc.data(), shop));  // แสดงข้อมูลโต๊ะในร้านนั้น
       });
     });
+
+    tableList.appendChild(section);
+  });
 }
 
 
@@ -218,5 +208,5 @@ document.getElementById("datePicker").addEventListener("change", () => {
   </script>
 
 </body>
-</html> 
+</html>    
 
