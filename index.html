@@ -246,6 +246,11 @@ datePicker.value = today.toISOString().split('T')[0]; // กำหนดค่�
 
 // ฟังก์ชันโหลดข้อมูลจาก Firestore ตามวันที่เลือก
 function loadTableDataByDate(selectedDate) {
+  if (!selectedDate) {
+    alert("กรุณาเลือกวันที่");
+    return;
+  }
+
   const shopIds = ["all-in", "fuel", "vyse"];
   shopIds.forEach(shopId => {
     db.collection("restaurants")
@@ -274,6 +279,11 @@ loadTableDataByDate(datePicker.value);
 
 // ฟังก์ชันที่จะถูกเรียกเมื่อผู้ใช้เลือกวันที่
 function createDateIfNotExists(shopId, selectedDate) {
+  if (!selectedDate) {
+    alert("กรุณาเลือกวันที่");
+    return;
+  }
+
   const dateRef = db.collection("restaurants").doc(shopId).collection("dates").doc(selectedDate);
   
   dateRef.get().then((doc) => {
@@ -296,16 +306,24 @@ function createDateIfNotExists(shopId, selectedDate) {
   });
 }
 
+
 // เมื่อผู้ใช้เลือกวันที่ใหม่
 datePicker.addEventListener('change', (e) => {
-  selectedDate = e.target.value;  // อัปเดต selectedDate ใหม่เมื่อผู้ใช้เลือกวันที่
+  selectedDate = e.target.value; // อัปเดต selectedDate ใหม่เมื่อผู้ใช้เลือกวันที่
   
+  // ตรวจสอบ selectedDate ว่ามีค่า
+  if (!selectedDate) {
+    alert("กรุณาเลือกวันที่");
+    return;
+  }
+
   // ตรวจสอบและสร้างเอกสารใน Firestore ถ้าไม่มี
   createDateIfNotExists(shopId, selectedDate);
   
   // โหลดข้อมูลโต๊ะตามวันที่เลือก
   loadTableDataByDate(selectedDate);
 });
+
 
   </script>
 
