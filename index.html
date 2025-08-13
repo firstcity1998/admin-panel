@@ -279,25 +279,33 @@ loadTableDataByDate(datePicker.value);
 
 // ฟังก์ชันสำหรับสร้างข้อมูลโต๊ะใน Firestore หากไม่มี
 function createTableIfNotExists(shopId, selectedDate, tableId) {
-  const tableRef = db.collection("restaurants").doc(shopId).collection("dates").doc(selectedDate).collection("tables").doc(tableId);
+  if (!shopId || !selectedDate || !tableId) {
+    console.error("ค่าของ shopId, selectedDate หรือ tableId ไม่มีค่า!");
+    return;
+  }
+  
+  const tableRef = db.collection("restaurants")
+                     .doc(shopId)
+                     .collection("dates")
+                     .doc(selectedDate)
+                     .collection("tables")
+                     .doc(tableId);
 
   tableRef.get().then((doc) => {
     if (!doc.exists) {
-      // หากเอกสารโต๊ะยังไม่มีใน Firestore ก็จะสร้างขึ้น
       tableRef.set({
-        reservedBy: null, // ไม่มีผู้จอง
-        status: "available", // ตั้งสถานะเป็น "available"
-        timestamp: null, // ไม่มีเวลาจอง
+        reservedBy: null, 
+        status: "available",
+        timestamp: null,
       }).then(() => {
         console.log(`สร้างโต๊ะ ${tableId} สำหรับวันที่ ${selectedDate} ใน Firestore`);
       }).catch((error) => {
         console.error("ไม่สามารถสร้างข้อมูลโต๊ะได้: ", error);
       });
-    } else {
-      console.log(`โต๊ะ ${tableId} สำหรับวันที่ ${selectedDate} มีอยู่แล้วใน Firestore`);
     }
   });
 }
+
 
 // ฟังก์ชันสำหรับการโหลดข้อมูลโต๊ะจาก Firestore
 function loadTables(shop, selectedDate) {
