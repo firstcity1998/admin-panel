@@ -242,7 +242,7 @@ const datePicker = document.getElementById('datePicker');
 
 // ตั้งค่าวันเริ่มต้นเป็นวันนี้
 const today = new Date();
-datePicker.value = today.toISOString().split('T')[0];
+datePicker.value = today.toISOString().split('T')[0]; // กำหนดค่าเริ่มต้นเป็นวันที่วันนี้
 
 // ฟังก์ชันโหลดข้อมูลจาก Firestore ตามวันที่เลือก
 function loadTableDataByDate(selectedDate) {
@@ -271,6 +271,41 @@ datePicker.addEventListener('change', (e) => {
 
 // โหลดครั้งแรก
 loadTableDataByDate(datePicker.value);
+
+// ฟังก์ชันที่จะถูกเรียกเมื่อผู้ใช้เลือกวันที่
+function createDateIfNotExists(shopId, selectedDate) {
+  const dateRef = db.collection("restaurants").doc(shopId).collection("dates").doc(selectedDate);
+  
+  dateRef.get().then((doc) => {
+    if (!doc.exists) {
+      // ถ้าเอกสารวันที่ที่เลือกไม่มี, ระบบจะสร้างเอกสารใหม่
+      dateRef.set({
+        date: selectedDate, // วันที่ที่ผู้ใช้เลือก
+        status: "available", // สถานะเริ่มต้นเป็น "available"
+        createdAt: firebase.firestore.Timestamp.now() // เวลาในการสร้างเอกสาร
+      })
+      .then(() => {
+        console.log(`สร้างเอกสารวันที่ ${selectedDate} ใน Firestore`);
+      })
+      .catch((error) => {
+        console.error("ไม่สามารถสร้างเอกสารวันที่ได้: ", error);
+      });
+    } else {
+      console.log("เอกสารวันที่นี้มีอยู่แล้วใน Firestore");
+    }
+  });
+}
+
+// เมื่อผู้ใช้เลือกวันที่ใหม่
+datePicker.addEventListener('change', (e) => {
+  selectedDate = e.target.value;  // อัปเดต selectedDate ใหม่เมื่อผู้ใช้เลือกวันที่
+  
+  // ตรวจสอบและสร้างเอกสารใน Firestore ถ้าไม่มี
+  createDateIfNotExists(shopId, selectedDate);
+  
+  // โหลดข้อมูลโต๊ะตามวันที่เลือก
+  loadTableDataByDate(selectedDate);
+});
 
   </script>
 
