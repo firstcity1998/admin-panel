@@ -198,25 +198,32 @@
 }
 
 
-    function updateStatus(id, status, shop) {
-  const updateData = { status };
-
-  // ✅ ถ้าสถานะไม่ใช่ reserved ให้ลบ reservedBy ออก
-  if (status === "reserved") {
-    const name = prompt("กรุณาใส่ชื่อผู้จอง:");
-    if (!name) return; // ถ้ายกเลิก prompt
-
-    updateData.reservedBy = { displayName: name };
-    updateData.timestamp = firebase.firestore.Timestamp.now();
-  } else {
-    updateData.reservedBy = firebase.firestore.FieldValue.delete();
-    updateData.timestamp = firebase.firestore.FieldValue.delete();
+   function updateTableStatus(tableId, status, shopId) {
+  const selectedDate = document.getElementById('datePicker').value; // กำหนดค่าจาก datePicker
+  const reservedByName = status === "reserved" ? prompt("กรุณาใส่ชื่อผู้จอง:") : null;
+  if (status === "reserved" && !reservedByName) {
+    alert("กรุณากรอกชื่อผู้จอง");
+    return;
   }
 
-  db.collection("restaurants").doc(shop).collection("tables").doc(id).update(updateData)
-    .then(() => console.log(`✅ Updated ${shop} โต๊ะ ${id} เป็น ${status}`))
-    .catch(err => alert("❌ อัปเดตไม่สำเร็จ: " + err.message));
+  const tableData = {
+    status: status,
+    reservedBy: reservedByName ? { displayName: reservedByName } : null,
+    timestamp: status === "reserved" ? firebase.firestore.Timestamp.now() : null,
+  };
+
+  db.collection("restaurants")
+    .doc(shopId)
+    .collection("dates")
+    .doc(selectedDate)  // ใช้วันที่ที่เลือกจาก datePicker
+    .collection("tables")
+    .doc(tableId)
+    .update(tableData)
+    .then(() => console.log("โต๊ะอัปเดตสำเร็จ"))
+    .catch((error) => console.error("ไม่สามารถอัปเดตโต๊ะได้: ", error));
 }
+
+
 
 // ใช้ datePicker ในการโหลดข้อมูลจาก Firestore ตามวันที่ที่เลือก
 const datePicker = document.getElementById('datePicker');
