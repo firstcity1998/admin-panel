@@ -39,7 +39,7 @@
     <!-- ปฏิทินเลือกวันที่ -->
   <label style="display:block; text-align:center; margin-top:10px;">
     เลือกวันที่:
-    <input type="date" id="datePicker" style="background-color:#333; color:white; text-align:center;">
+    <input type="date" id="datePicker" style="background-color:#333; color:white; text-align:center;" max="2025-09-13" min="2025-08-13">
   </label>
     <button onclick="logout()" style="background-color:#f44336;">ออกจากระบบ</button>
     <div id="tableList" class="table-list"></div>
@@ -205,6 +205,40 @@
     .then(() => console.log(`✅ Updated ${shop} โต๊ะ ${id} เป็น ${status}`))
     .catch(err => alert("❌ อัปเดตไม่สำเร็จ: " + err.message));
 }
+
+const datePicker = document.getElementById('datePicker');
+
+  // ตั้งค่าวันเริ่มต้นเป็นวันนี้
+  const today = new Date();
+  datePicker.value = today.toISOString().split('T')[0];
+
+  // ฟังก์ชันโหลดข้อมูลจาก Firestore ตามวันที่เลือก
+  function loadTableDataByDate(selectedDate) {
+    const shopIds = ["all-in", "fuel", "vyse"];
+    shopIds.forEach(shopId => {
+      db.collection("restaurants")
+        .doc(shopId)
+        .collection("dates")
+        .doc(selectedDate)
+        .collection("tables")
+        .onSnapshot(snapshot => {
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            console.log(`ร้าน: ${shopId}, โต๊ะ: ${doc.id}, สถานะ: ${data.status}`);
+          });
+        });
+    });
+  }
+
+  // เมื่อเลือกวันใหม่
+  datePicker.addEventListener('change', (e) => {
+    const selectedDate = e.target.value; // เช่น 2025-08-13
+    loadTableDataByDate(selectedDate);
+  });
+
+  // โหลดครั้งแรก
+  loadTableDataByDate(datePicker.value);
+
   </script>
 
 </body>
