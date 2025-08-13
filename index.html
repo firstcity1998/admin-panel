@@ -293,6 +293,8 @@ function createTableIfNotExists(shopId, selectedDate, tableId) {
       }).catch((error) => {
         console.error("ไม่สามารถสร้างข้อมูลโต๊ะได้: ", error);
       });
+    } else {
+      console.log(`โต๊ะ ${tableId} สำหรับวันที่ ${selectedDate} มีอยู่แล้วใน Firestore`);
     }
   });
 }
@@ -322,7 +324,7 @@ datePicker.addEventListener('change', (e) => {
 
   // ตรวจสอบและสร้างเอกสารวันที่ใน Firestore ถ้าไม่มี
   createDateIfNotExists(shopId, selectedDate);
-  
+
   // สร้างข้อมูลโต๊ะใน Firestore หากไม่มี
   const tableIds = ["A1", "A6"]; // โต๊ะที่ต้องการสร้างใน Firestore
   tableIds.forEach(tableId => {
@@ -330,9 +332,30 @@ datePicker.addEventListener('change', (e) => {
   });
 
   // โหลดข้อมูลโต๊ะตามวันที่เลือก
-  loadTableDataByDate(selectedDate);
+  loadTables(shopId, selectedDate);
 });
 
+// ฟังก์ชันตรวจสอบว่าเอกสารวันที่มีอยู่ใน Firestore หรือไม่ หากไม่มีจะสร้างใหม่
+function createDateIfNotExists(shopId, selectedDate) {
+  const dateRef = db.collection("restaurants").doc(shopId).collection("dates").doc(selectedDate);
+
+  dateRef.get().then((doc) => {
+    if (!doc.exists) {
+      // ถ้าเอกสารวันที่ที่เลือกไม่มี, ระบบจะสร้างเอกสารใหม่
+      dateRef.set({
+        date: selectedDate, // วันที่ที่ผู้ใช้เลือก
+        status: "available", // สถานะเริ่มต้นเป็น "available"
+        createdAt: firebase.firestore.Timestamp.now() // เวลาในการสร้างเอกสาร
+      }).then(() => {
+        console.log(`สร้างเอกสารวันที่ ${selectedDate} ใน Firestore`);
+      }).catch((error) => {
+        console.error("ไม่สามารถสร้างเอกสารวันที่ได้: ", error);
+      });
+    } else {
+      console.log("เอกสารวันที่นี้มีอยู่แล้วใน Firestore");
+    }
+  });
+}
 
 
   </script>
