@@ -204,7 +204,6 @@
 let selectedDate = document.getElementById('datePicker').value; // ตัวแปร selectedDate สามารถเข้าถึงได้ทั่วโค้ด
 
 function updateStatus(tableId, status, shopId) {
-  // ฟังก์ชันนี้จะถูกเรียกเมื่อผู้ใช้คลิกที่ปุ่ม
   const reservedByName = status === "reserved" ? prompt("กรุณาใส่ชื่อผู้จอง:") : null;
   if (status === "reserved" && !reservedByName) {
     alert("กรุณากรอกชื่อผู้จอง");
@@ -216,6 +215,11 @@ function updateStatus(tableId, status, shopId) {
     reservedBy: reservedByName ? { displayName: reservedByName } : null,
     timestamp: status === "reserved" ? firebase.firestore.Timestamp.now() : null,
   };
+  // ตรวจสอบ selectedDate
+  if (!selectedDate) {
+    alert("กรุณาเลือกวันที่");
+    return;
+  }
 
   // ใช้ selectedDate ที่ถูกประกาศไว้ด้านบน
   db.collection("restaurants")
