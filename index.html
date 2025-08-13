@@ -117,13 +117,17 @@
   db.collection("restaurants")
     .doc(shop)
     .collection("dates")
-    .doc(selectedDate)  // ใช้วันที่ที่เลือกจาก datePicker
+    .doc(selectedDate)
     .collection("tables")
     .onSnapshot(snapshot => {
-      tableList.innerHTML = "";
-      snapshot.forEach(doc => {
-        tableList.appendChild(renderTable(doc.id, doc.data(), shop));
-      });
+      if (!snapshot.empty) {
+        tableList.innerHTML = "";
+        snapshot.forEach(doc => {
+          tableList.appendChild(renderTable(doc.id, doc.data(), shop));
+        });
+      } else {
+        tableList.innerHTML = "ไม่มีข้อมูลสำหรับวันที่นี้";
+      }
     });
 }
 
@@ -189,16 +193,17 @@
     <div style="margin: 6px 0;">สถานะ: <b>${data.status}</b></div>
     <div style="font-size: 14px; color: #facc15;">ชื่อผู้จอง: ${reservedName}</div>
     ${timeText ? `<div style="font-size: 12px; color: #ccc;">เวลาจอง: ${timeText}</div>` : ""}
-    <button class="status-btn available" onclick="updateStatus('A1', 'available', 'all-in')">ว่าง</button>
-    <button class="status-btn reserved" onclick="updateStatus('A1', 'reserved', 'all-in')">จอง</button>
-    <button class="status-btn blocked" onclick="updateStatus('A1', 'blocked', 'all-in')">บล็อก</button>
+    <button class="status-btn available" onclick="updateStatus('${id}', 'available', '${shop}')">ว่าง</button>
+    <button class="status-btn reserved" onclick="updateStatus('${id}', 'reserved', '${shop}')">จอง</button>
+    <button class="status-btn blocked" onclick="updateStatus('${id}', 'blocked', '${shop}')">บล็อก</button>
   `;
 
   return div;
 }
 
+let selectedDate = document.getElementById('datePicker').value; // ตัวแปร selectedDate สามารถเข้าถึงได้ทั่วโค้ด
 
-   function updateStatus(tableId, status, shopId) {
+function updateStatus(tableId, status, shopId) {
   // ฟังก์ชันนี้จะถูกเรียกเมื่อผู้ใช้คลิกที่ปุ่ม
   const reservedByName = status === "reserved" ? prompt("กรุณาใส่ชื่อผู้จอง:") : null;
   if (status === "reserved" && !reservedByName) {
@@ -212,6 +217,7 @@
     timestamp: status === "reserved" ? firebase.firestore.Timestamp.now() : null,
   };
 
+  // ใช้ selectedDate ที่ถูกประกาศไว้ด้านบน
   db.collection("restaurants")
     .doc(shopId)
     .collection("dates")
@@ -219,7 +225,10 @@
     .collection("tables")
     .doc(tableId)
     .update(tableData)
-    .then(() => console.log("โต๊ะอัปเดตสำเร็จ"))
+    .then(() => {
+      console.log("โต๊ะอัปเดตสำเร็จ");
+      loadTables(shopId, selectedDate); // รีเฟรชการโหลดโต๊ะใหม่
+    })
     .catch((error) => console.error("ไม่สามารถอัปเดตโต๊ะได้: ", error));
 }
 
@@ -231,7 +240,7 @@ const datePicker = document.getElementById('datePicker');
 const today = new Date();
 datePicker.value = today.toISOString().split('T')[0];
 
- // ฟังก์ชันโหลดข้อมูลจาก Firestore ตามวันที่เลือก
+// ฟังก์ชันโหลดข้อมูลจาก Firestore ตามวันที่เลือก
 function loadTableDataByDate(selectedDate) {
   const shopIds = ["all-in", "fuel", "vyse"];
   shopIds.forEach(shopId => {
@@ -250,10 +259,9 @@ function loadTableDataByDate(selectedDate) {
   });
 }
 
-
-  /// เมื่อเลือกวันใหม่
+// เมื่อเลือกวันใหม่
 datePicker.addEventListener('change', (e) => {
-  const selectedDate = e.target.value; // วันที่ที่ผู้ใช้เลือก
+  selectedDate = e.target.value; // อัปเดต selectedDate ใหม่เมื่อผู้ใช้เลือกวันที่
   loadTableDataByDate(selectedDate);  // โหลดข้อมูลโต๊ะตามวันที่
 });
 
