@@ -82,23 +82,25 @@
     }
 
     const { role, shop } = adminDoc.data();
-
     loginSection.style.display = "none";
     adminPanel.style.display = "block";
 
     if (role === "superadmin") {
       adminTitle.textContent = "จัดการโต๊ะทุกสาขา (Superadmin)";
-      loadAllShops();  // ดึงร้านทั้งหมดจาก Firestore
+      const selectedDate = document.getElementById('datePicker').value;  // ใช้วันที่ที่เลือก
+      loadAllShops(selectedDate);  // ดึงร้านทั้งหมดจาก Firestore
     } else {
       shopId = shop;
       adminTitle.textContent = `จัดการโต๊ะร้าน: ${shopId}`;
-      loadTables(shopId);
+      const selectedDate = document.getElementById('datePicker').value;  // ใช้วันที่ที่เลือก
+      loadTables(shopId, selectedDate);  // โหลดโต๊ะตามวันที่
     }
   } else {
     loginSection.style.display = "block";
     adminPanel.style.display = "none";
   }
 });
+
 
     function login() {
       const email = document.getElementById("email").value;
@@ -111,16 +113,21 @@
       auth.signOut();
     }
 
-    function loadTables(shop) {
-      db.collection("restaurants").doc(shop).collection("tables").onSnapshot(snapshot => {
-        tableList.innerHTML = "";
-        snapshot.forEach(doc => {
-          tableList.appendChild(renderTable(doc.id, doc.data(), shop));
-        });
+    function loadTables(shop, selectedDate) {
+  db.collection("restaurants")
+    .doc(shop)
+    .collection("dates")
+    .doc(selectedDate)  // ใช้วันที่ที่เลือกจาก datePicker
+    .collection("tables")
+    .onSnapshot(snapshot => {
+      tableList.innerHTML = "";
+      snapshot.forEach(doc => {
+        tableList.appendChild(renderTable(doc.id, doc.data(), shop));
       });
-    }
+    });
+}
 
-   async function loadAllShops() {
+   async function loadAllShops(selectedDate) {
   // ดึงร้านทั้งหมดจาก Firestore
   const snapshot = await db.collection("restaurants").get(); // ดึงข้อมูลจาก collection "restaurants"
   
@@ -131,7 +138,7 @@
   // เคลียร์ข้อมูลเดิมที่แสดงอยู่
   tableList.innerHTML = "";
 
-  // วนลูปเพื่อโหลดข้อมูลโต๊ะของแต่ละร้าน
+  // วนลูปเพื่อโหลดข้อมูลโต๊ะของแต่ละร้านตามวันที่
   shopList.forEach(shop => {
     const section = document.createElement("div");
     const title = document.createElement("h3");
@@ -139,11 +146,16 @@
     section.appendChild(title);
 
     // ดึงข้อมูลโต๊ะจากร้านนั้น
-    db.collection("restaurants").doc(shop).collection("tables").onSnapshot(snapshot => {
-      snapshot.forEach(doc => {
-        section.appendChild(renderTable(doc.id, doc.data(), shop));  // แสดงข้อมูลโต๊ะในร้านนั้น
+    db.collection("restaurants")
+      .doc(shop)
+      .collection("dates")
+      .doc(selectedDate)  // ใช้วันที่ที่เลือกจาก datePicker
+      .collection("tables")
+      .onSnapshot(snapshot => {
+        snapshot.forEach(doc => {
+          section.appendChild(renderTable(doc.id, doc.data(), shop));  // แสดงข้อมูลโต๊ะในร้านนั้น
+        });
       });
-    });
 
     tableList.appendChild(section);
   });
@@ -206,38 +218,39 @@
     .catch(err => alert("❌ อัปเดตไม่สำเร็จ: " + err.message));
 }
 
+// ใช้ datePicker ในการโหลดข้อมูลจาก Firestore ตามวันที่ที่เลือก
 const datePicker = document.getElementById('datePicker');
 
-  // ตั้งค่าวันเริ่มต้นเป็นวันนี้
-  const today = new Date();
-  datePicker.value = today.toISOString().split('T')[0];
+// ตั้งค่าวันเริ่มต้นเป็นวันนี้
+const today = new Date();
+datePicker.value = today.toISOString().split('T')[0];
 
-  // ฟังก์ชันโหลดข้อมูลจาก Firestore ตามวันที่เลือก
-  function loadTableDataByDate(selectedDate) {
-    const shopIds = ["all-in", "fuel", "vyse"];
-    shopIds.forEach(shopId => {
-      db.collection("restaurants")
-        .doc(shopId)
-        .collection("dates")
-        .doc(selectedDate)
-        .collection("tables")
-        .onSnapshot(snapshot => {
-          snapshot.forEach(doc => {
-            const data = doc.data();
-            console.log(`ร้าน: ${shopId}, โต๊ะ: ${doc.id}, สถานะ: ${data.status}`);
-          });
+ // ฟังก์ชันโหลดข้อมูลจาก Firestore ตามวันที่เลือก
+function loadTableDataByDate(selectedDate) {
+  const shopIds = ["all-in", "fuel", "vyse"];
+  shopIds.forEach(shopId => {
+    db.collection("restaurants")
+      .doc(shopId)
+      .collection("dates")
+      .doc(selectedDate)  // ใช้วันที่ที่เลือกจาก datePicker
+      .collection("tables")
+      .onSnapshot(snapshot => {
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          console.log(`ร้าน: ${shopId}, โต๊ะ: ${doc.id}, สถานะ: ${data.status}`);
         });
-    });
-  }
-
-  // เมื่อเลือกวันใหม่
-  datePicker.addEventListener('change', (e) => {
-    const selectedDate = e.target.value; // เช่น 2025-08-13
-    loadTableDataByDate(selectedDate);
+      });
   });
+}
 
-  // โหลดครั้งแรก
-  loadTableDataByDate(datePicker.value);
+  /// เมื่อเลือกวันใหม่
+datePicker.addEventListener('change', (e) => {
+  const selectedDate = e.target.value; // วันที่ที่ผู้ใช้เลือก
+  loadTableDataByDate(selectedDate);  // โหลดข้อมูลโต๊ะตามวันที่
+});
+
+// โหลดครั้งแรก
+loadTableDataByDate(datePicker.value);
 
   </script>
 
