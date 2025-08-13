@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -36,10 +37,10 @@
   <div id="adminPanel" style="display:none;">
     <h1 id="adminTitle">กำลังโหลดร้าน...</h1>
     <!-- ปฏิทินเลือกวันที่ -->
-    <label style="display:block; text-align:center; margin-top:10px;">
-      เลือกวันที่:
-      <input type="date" id="datePicker" style="background-color:#333; color:white; text-align:center;" max="2025-09-13" min="2025-08-13">
-    </label>
+  <label style="display:block; text-align:center; margin-top:10px;">
+    เลือกวันที่:
+    <input type="date" id="datePicker" style="background-color:#333; color:white; text-align:center;" max="2025-09-13" min="2025-08-13">
+  </label>
     <button onclick="logout()" style="background-color:#f44336;">ออกจากระบบ</button>
     <div id="tableList" class="table-list"></div>
   </div>
@@ -58,51 +59,49 @@
       appId: "1:670687363597:web:dd96a5936c87ad27dd0b44"
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // DOM Elements
     const loginSection = document.getElementById("loginSection");
     const adminPanel = document.getElementById("adminPanel");
     const adminTitle = document.getElementById("adminTitle");
     const tableList = document.getElementById("tableList");
 
     let shopId = null;
-    let selectedDate = document.getElementById('datePicker').value; // Initial selected date
 
-    // Listen for auth state changes
     auth.onAuthStateChanged(async user => {
-      if (user) {
-        const uid = user.uid;
-        const adminDoc = await db.collection("admins").doc(uid).get();
+  if (user) {
+    const uid = user.uid;
+    const adminDoc = await db.collection("admins").doc(uid).get();
 
-        if (!adminDoc.exists) {
-          alert("❌ คุณไม่มีสิทธิ์เข้าถึงระบบนี้");
-          auth.signOut();
-          return;
-        }
+    if (!adminDoc.exists) {
+      alert("❌ คุณไม่มีสิทธิ์เข้าถึงระบบนี้");
+      auth.signOut();
+      return;
+    }
 
-        const { role, shop } = adminDoc.data();
-        loginSection.style.display = "none";
-        adminPanel.style.display = "block";
+    const { role, shop } = adminDoc.data();
+    loginSection.style.display = "none";
+    adminPanel.style.display = "block";
 
-        if (role === "superadmin") {
-          adminTitle.textContent = "จัดการโต๊ะทุกสาขา (Superadmin)";
-          loadAllShops(selectedDate); // Load all shops when superadmin logs in
-        } else {
-          shopId = shop;
-          adminTitle.textContent = `จัดการโต๊ะร้าน: ${shopId}`;
-          loadTables(shopId, selectedDate); // Load tables for specific shop
-        }
-      } else {
-        loginSection.style.display = "block";
-        adminPanel.style.display = "none";
-      }
-    });
+    if (role === "superadmin") {
+      adminTitle.textContent = "จัดการโต๊ะทุกสาขา (Superadmin)";
+      const selectedDate = document.getElementById('datePicker').value;  // ใช้วันที่ที่เลือก
+      loadAllShops(selectedDate);  // ดึงร้านทั้งหมดจาก Firestore
+    } else {
+      shopId = shop;
+      adminTitle.textContent = `จัดการโต๊ะร้าน: ${shopId}`;
+      const selectedDate = document.getElementById('datePicker').value;  // ใช้วันที่ที่เลือก
+      loadTables(shopId, selectedDate);  // โหลดโต๊ะตามวันที่
+    }
+  } else {
+    loginSection.style.display = "block";
+    adminPanel.style.display = "none";
+  }
+});
 
-    // Login function
+
     function login() {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
@@ -110,196 +109,234 @@
         .catch(err => alert("เข้าสู่ระบบล้มเหลว: " + err.message));
     }
 
-    // Logout function
     function logout() {
       auth.signOut();
     }
 
-    // Load tables based on selected shop and date
     function loadTables(shop, selectedDate) {
-      db.collection("restaurants")
-        .doc(shop)
-        .collection("dates")
-        .doc(selectedDate)
-        .collection("tables")
-        .onSnapshot(snapshot => {
-          if (!snapshot.empty) {
-            tableList.innerHTML = "";
-            snapshot.forEach(doc => {
-              tableList.appendChild(renderTable(doc.id, doc.data(), shop));
-            });
-          } else {
-            tableList.innerHTML = "ไม่มีข้อมูลสำหรับวันที่นี้";
-          }
+  db.collection("restaurants")
+    .doc(shop)
+    .collection("dates")
+    .doc(selectedDate)
+    .collection("tables")
+    .onSnapshot(snapshot => {
+      if (!snapshot.empty) {
+        tableList.innerHTML = "";
+        snapshot.forEach(doc => {
+          tableList.appendChild(renderTable(doc.id, doc.data(), shop));
         });
-    }
+      } else {
+        tableList.innerHTML = "ไม่มีข้อมูลสำหรับวันที่นี้";
+      }
+    });
+}
 
-    // Load all shops
-    async function loadAllShops(selectedDate) {
-      const snapshot = await db.collection("restaurants").get();
-      const shopList = snapshot.docs.map(doc => doc.id);
+   async function loadAllShops(selectedDate) {
+  // ดึงร้านทั้งหมดจาก Firestore
+  const snapshot = await db.collection("restaurants").get(); // ดึงข้อมูลจาก collection "restaurants"
+  
+  // สร้าง array ของชื่อร้าน
+  const shopList = snapshot.docs.map(doc => doc.id);
+  console.log(shopList);
 
-      tableList.innerHTML = "";
+  // เคลียร์ข้อมูลเดิมที่แสดงอยู่
+  tableList.innerHTML = "";
 
-      shopList.forEach(shop => {
-        const section = document.createElement("div");
-        const title = document.createElement("h3");
-        title.textContent = `ร้าน: ${shop}`;
-        section.appendChild(title);
+  // วนลูปเพื่อโหลดข้อมูลโต๊ะของแต่ละร้านตามวันที่
+  shopList.forEach(shop => {
+    const section = document.createElement("div");
+    const title = document.createElement("h3");
+    title.textContent = `ร้าน: ${shop}`;
+    section.appendChild(title);
 
-        db.collection("restaurants")
-          .doc(shop)
-          .collection("dates")
-          .doc(selectedDate)
-          .collection("tables")
-          .onSnapshot(snapshot => {
-            snapshot.forEach(doc => {
-              section.appendChild(renderTable(doc.id, doc.data(), shop));
-            });
-          });
-
-        tableList.appendChild(section);
-      });
-    }
-
-    // Render table data
-    function renderTable(id, data, shop) {
-      const div = document.createElement("div");
-      div.className = "table-card";
-
-      const reservedName = data.status === "reserved" && data.reservedBy?.displayName
-        ? data.reservedBy.displayName
-        : "-";
-
-      let timeText = "";
-      if (data.status === "reserved" && data.timestamp?.toDate) {
-        const ts = data.timestamp.toDate();
-        timeText = ts.toLocaleString("th-TH", {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
+    // ดึงข้อมูลโต๊ะจากร้านนั้น
+    db.collection("restaurants")
+      .doc(shop)
+      .collection("dates")
+      .doc(selectedDate)  // ใช้วันที่ที่เลือกจาก datePicker
+      .collection("tables")
+      .onSnapshot(snapshot => {
+        snapshot.forEach(doc => {
+          section.appendChild(renderTable(doc.id, doc.data(), shop));  // แสดงข้อมูลโต๊ะในร้านนั้น
         });
-      }
+      });
 
-      div.innerHTML = `
-        <div><strong>โต๊ะ ${id}</strong></div>
-        <div style="margin: 6px 0;">สถานะ: <b>${data.status}</b></div>
-        <div style="font-size: 14px; color: #facc15;">ชื่อผู้จอง: ${reservedName}</div>
-        ${timeText ? `<div style="font-size: 12px; color: #ccc;">เวลาจอง: ${timeText}</div>` : ""}
-        <button class="status-btn available" onclick="updateStatus('${id}', 'available', '${shop}')">ว่าง</button>
-        <button class="status-btn reserved" onclick="updateStatus('${id}', 'reserved', '${shop}')">จอง</button>
-        <button class="status-btn blocked" onclick="updateStatus('${id}', 'blocked', '${shop}')">บล็อก</button>
-      `;
+    tableList.appendChild(section);
+  });
+}
 
-      return div;
-    }
 
-    // Update table status (reserved, available, blocked)
-    function updateStatus(tableId, status, shopId) {
-      const reservedByName = status === "reserved" ? prompt("กรุณาใส่ชื่อผู้จอง:") : null;
-      if (status === "reserved" && !reservedByName) {
-        alert("กรุณากรอกชื่อผู้จอง");
-        return;
-      }
+   function renderTable(id, data, shop) {
+  const div = document.createElement("div");
+  div.className = "table-card";
 
-      const tableData = {
-        status: status,
-        reservedBy: reservedByName ? { displayName: reservedByName } : null,
-        timestamp: status === "reserved" ? firebase.firestore.Timestamp.now() : null,
-      };
+  // ดึงชื่อผู้จอง ถ้ามี
+  const reservedName = data.status === "reserved" && data.reservedBy?.displayName
+    ? data.reservedBy.displayName
+    : "-";
 
-      if (!selectedDate) {
-        alert("กรุณาเลือกวันที่");
-        return;
-      }
+ // ✅ แปลง timestamp จาก Firestore เป็นวันเวลาแบบไทย
+  let timeText = "";
+  if (data.status === "reserved" && data.timestamp?.toDate) {
+    const ts = data.timestamp.toDate();
+    timeText = ts.toLocaleString("th-TH", {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
 
-      db.collection("restaurants")
-        .doc(shopId)
-        .collection("dates")
-        .doc(selectedDate)
-        .collection("tables")
-        .doc(tableId)
-        .update(tableData)
-        .then(() => {
-          console.log("โต๊ะอัปเดตสำเร็จ");
-          loadTables(shopId, selectedDate);
-        })
-        .catch((error) => console.error("ไม่สามารถอัปเดตโต๊ะได้: ", error));
-    }
+  div.innerHTML = `
+    <div><strong>โต๊ะ ${id}</strong></div>
+    <div style="margin: 6px 0;">สถานะ: <b>${data.status}</b></div>
+    <div style="font-size: 14px; color: #facc15;">ชื่อผู้จอง: ${reservedName}</div>
+    ${timeText ? `<div style="font-size: 12px; color: #ccc;">เวลาจอง: ${timeText}</div>` : ""}
+    <button class="status-btn available" onclick="updateStatus('${id}', 'available', '${shop}')">ว่าง</button>
+    <button class="status-btn reserved" onclick="updateStatus('${id}', 'reserved', '${shop}')">จอง</button>
+    <button class="status-btn blocked" onclick="updateStatus('${id}', 'blocked', '${shop}')">บล็อก</button>
+  `;
 
-    // Set default date to today
-    const today = new Date();
-    datePicker.value = today.toISOString().split('T')[0];
+  return div;
+}
 
-    // Load tables by selected date
-    function loadTableDataByDate(selectedDate) {
-      if (!selectedDate) {
-        alert("กรุณาเลือกวันที่");
-        return;
-      }
+let selectedDate = document.getElementById('datePicker').value; // ตัวแปร selectedDate สามารถเข้าถึงได้ทั่วโค้ด
 
-      const shopIds = ["all-in", "fuel", "vyse"];
-      shopIds.forEach(shopId => {
-        db.collection("restaurants")
-          .doc(shopId)
-          .collection("dates")
-          .doc(selectedDate)
-          .collection("tables")
-          .onSnapshot(snapshot => {
-            console.log(`DID THE QUERY EXECUTE? shopId: ${shopId}, date: ${selectedDate}`);
-            snapshot.forEach(doc => {
-              const data = doc.data();
-              console.log(`ร้าน: ${shopId}, โต๊ะ: ${doc.id}, สถานะ: ${data.status}`);
-            });
-          });
+function updateStatus(tableId, status, shopId) {
+  const reservedByName = status === "reserved" ? prompt("กรุณาใส่ชื่อผู้จอง:") : null;
+  if (status === "reserved" && !reservedByName) {
+    alert("กรุณากรอกชื่อผู้จอง");
+    return;
+  }
+
+  const tableData = {
+    status: status,
+    reservedBy: reservedByName ? { displayName: reservedByName } : null,
+    timestamp: status === "reserved" ? firebase.firestore.Timestamp.now() : null,
+  };
+  // ตรวจสอบ selectedDate
+  if (!selectedDate) {
+    alert("กรุณาเลือกวันที่");
+    return;
+  }
+
+  // ใช้ selectedDate ที่ถูกประกาศไว้ด้านบน
+  db.collection("restaurants")
+    .doc(shopId)
+    .collection("dates")
+    .doc(selectedDate)  // ใช้วันที่ที่เลือกจาก datePicker
+    .collection("tables")
+    .doc(tableId)
+    .update(tableData)
+    .then(() => {
+      console.log("โต๊ะอัปเดตสำเร็จ");
+      loadTables(shopId, selectedDate); // รีเฟรชการโหลดโต๊ะใหม่
+    })
+    .catch((error) => console.error("ไม่สามารถอัปเดตโต๊ะได้: ", error));
+}
+
+
+// ใช้ datePicker ในการโหลดข้อมูลจาก Firestore ตามวันที่ที่เลือก
+const datePicker = document.getElementById('datePicker');
+
+// ตั้งค่าวันเริ่มต้นเป็นวันนี้
+const today = new Date();
+datePicker.value = today.toISOString().split('T')[0]; // กำหนดค่าเริ่มต้นเป็นวันที่วันนี้
+
+// ฟังก์ชันโหลดข้อมูลจาก Firestore ตามวันที่เลือก
+function loadTableDataByDate(selectedDate) {
+  if (!selectedDate) {
+    alert("กรุณาเลือกวันที่");
+    return;
+  }
+
+  const shopIds = ["all-in", "fuel", "vyse"];
+  shopIds.forEach(shopId => {
+    db.collection("restaurants")
+      .doc(shopId)
+      .collection("dates")
+      .doc(selectedDate)  // ใช้วันที่ที่เลือกจาก datePicker
+      .collection("tables")
+      .onSnapshot(snapshot => {
+        console.log(`DID THE QUERY EXECUTE? shopId: ${shopId}, date: ${selectedDate}`);
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          console.log(`ร้าน: ${shopId}, โต๊ะ: ${doc.id}, สถานะ: ${data.status}`);
+        });
+      });
+  });
+}
+
+// เมื่อเลือกวันใหม่
+datePicker.addEventListener('change', (e) => {
+  selectedDate = e.target.value; // อัปเดต selectedDate ใหม่เมื่อผู้ใช้เลือกวันที่
+  loadTableDataByDate(selectedDate);  // โหลดข้อมูลโต๊ะตามวันที่
+});
+
+// โหลดครั้งแรก
+loadTableDataByDate(datePicker.value);
+
+// ฟังก์ชันสำหรับสร้างข้อมูลโต๊ะใน Firestore หากไม่มี
+function createTableIfNotExists(shopId, selectedDate, tableId) {
+  const tableRef = db.collection("restaurants").doc(shopId).collection("dates").doc(selectedDate).collection("tables").doc(tableId);
+
+  tableRef.get().then((doc) => {
+    if (!doc.exists) {
+      // หากเอกสารโต๊ะยังไม่มีใน Firestore ก็จะสร้างขึ้น
+      tableRef.set({
+        reservedBy: null, // ไม่มีผู้จอง
+        status: "available", // ตั้งสถานะเป็น "available"
+        timestamp: null, // ไม่มีเวลาจอง
+      }).then(() => {
+        console.log(`สร้างโต๊ะ ${tableId} สำหรับวันที่ ${selectedDate} ใน Firestore`);
+      }).catch((error) => {
+        console.error("ไม่สามารถสร้างข้อมูลโต๊ะได้: ", error);
       });
     }
+  });
+}
 
-    // Handle date change event
-    datePicker.addEventListener('change', (e) => {
-      selectedDate = e.target.value;
-      loadTableDataByDate(selectedDate); // Reload tables based on selected date
-    });
-
-    // Initialize on page load
-    loadTableDataByDate(datePicker.value);
-
-    // Create date if not exists in Firestore
-    function createDateIfNotExists(shopId, selectedDate) {
-      if (!selectedDate) {
-        alert("กรุณาเลือกวันที่");
-        return;
+// ฟังก์ชันสำหรับการโหลดข้อมูลโต๊ะจาก Firestore
+function loadTables(shop, selectedDate) {
+  db.collection("restaurants")
+    .doc(shop)
+    .collection("dates")
+    .doc(selectedDate)
+    .collection("tables")
+    .onSnapshot(snapshot => {
+      if (!snapshot.empty) {
+        tableList.innerHTML = "";
+        snapshot.forEach(doc => {
+          tableList.appendChild(renderTable(doc.id, doc.data(), shop));
+        });
+      } else {
+        tableList.innerHTML = "ไม่มีข้อมูลสำหรับวันที่นี้";
       }
-
-      const dateRef = db.collection("restaurants").doc(shopId).collection("dates").doc(selectedDate);
-
-      dateRef.get().then((doc) => {
-        if (!doc.exists) {
-          dateRef.set({
-            date: selectedDate,
-            status: "available",
-            createdAt: firebase.firestore.Timestamp.now(),
-          }).then(() => {
-            console.log(`สร้างเอกสารวันที่ ${selectedDate} ใน Firestore`);
-          }).catch((error) => {
-            console.error("ไม่สามารถสร้างเอกสารวันที่ได้: ", error);
-          });
-        } else {
-          console.log("เอกสารวันที่นี้มีอยู่แล้วใน Firestore");
-        }
-      });
-    }
-
-    // When selecting a new date
-    datePicker.addEventListener('change', (e) => {
-      selectedDate = e.target.value;
-      createDateIfNotExists(shopId, selectedDate);
-      loadTableDataByDate(selectedDate);
     });
+}
+
+// เมื่อเลือกวันที่ใหม่
+datePicker.addEventListener('change', (e) => {
+  selectedDate = e.target.value;  // อัปเดต selectedDate ใหม่เมื่อผู้ใช้เลือกวันที่
+
+  // ตรวจสอบและสร้างเอกสารวันที่ใน Firestore ถ้าไม่มี
+  createDateIfNotExists(shopId, selectedDate);
+  
+  // สร้างข้อมูลโต๊ะใน Firestore หากไม่มี
+  const tableIds = ["A1", "A6"]; // โต๊ะที่ต้องการสร้างใน Firestore
+  tableIds.forEach(tableId => {
+    createTableIfNotExists(shopId, selectedDate, tableId);
+  });
+
+  // โหลดข้อมูลโต๊ะตามวันที่เลือก
+  loadTableDataByDate(selectedDate);
+});
+
+
 
   </script>
 
 </body>
-</html>
+</html>    
+
