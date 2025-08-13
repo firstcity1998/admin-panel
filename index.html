@@ -235,6 +235,7 @@ function loadTableDataByDate(selectedDate) {
       .doc(selectedDate)  // ใช้วันที่ที่เลือกจาก datePicker
       .collection("tables")
       .onSnapshot(snapshot => {
+        console.log(`DID THE QUERY EXECUTE? shopId: ${shopId}, date: ${selectedDate}`);
         snapshot.forEach(doc => {
           const data = doc.data();
           console.log(`ร้าน: ${shopId}, โต๊ะ: ${doc.id}, สถานะ: ${data.status}`);
@@ -242,6 +243,7 @@ function loadTableDataByDate(selectedDate) {
       });
   });
 }
+
 
   /// เมื่อเลือกวันใหม่
 datePicker.addEventListener('change', (e) => {
