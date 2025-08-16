@@ -198,11 +198,19 @@ async function loadAllShops() {
     });
   }
 
+  // แสดงวันที่จอง (bookingDate) ถ้ามี
+  let bookingDateText = "";
+  if (data.bookingDate?.toDate) {
+    const bookingDate = data.bookingDate.toDate();
+    bookingDateText = `วันที่จอง: ${bookingDate.toLocaleDateString("th-TH")}`;
+  }
+
   div.innerHTML = `
     <div><strong>โต๊ะ ${id}</strong></div>
     <div style="margin: 6px 0;">สถานะ: <b>${data.status}</b></div>
     <div style="font-size: 14px; color: #facc15;">ชื่อผู้จอง: ${reservedName}</div>
     ${timeText ? `<div style="font-size: 12px; color: #ccc;">เวลาจอง: ${timeText}</div>` : ""}
+    ${bookingDateText ? `<div style="font-size: 12px; color: #ccc;">${bookingDateText}</div>` : ""}
     <button class="status-btn available" onclick="updateStatus('${id}', 'available', '${shop}')">ว่าง</button>
     <button class="status-btn reserved" onclick="updateStatus('${id}', 'reserved', '${shop}')">จอง</button>
     <button class="status-btn blocked" onclick="updateStatus('${id}', 'blocked', '${shop}')">บล็อก</button>
@@ -218,17 +226,19 @@ async function loadAllShops() {
   if (status !== "reserved") {
     updateData.reservedBy = firebase.firestore.FieldValue.delete();
     updateData.timestamp = firebase.firestore.FieldValue.delete();
+    updateData.bookingDate = firebase.firestore.FieldValue.delete();
   } else {
     const name = prompt("กรุณาใส่ชื่อผู้จอง:");
     if (!name) return;
 
     updateData.reservedBy = { displayName: name };
     updateData.timestamp = firebase.firestore.Timestamp.now();
+    // กำหนดวันที่จองจากวันที่ใน datePicker หรือวันที่เลือก
+    updateData.bookingDate = firebase.firestore.Timestamp.fromDate(new Date(selectedDate)); // ใช้ selectedDate จาก datePicker
   }
 
   // ✅ อัปเดตที่ path มีวันที่
-  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-  db.collection("restaurants").doc(shop).collection("dates").doc(today).collection("tables").doc(id)
+  db.collection("restaurants").doc(shop).collection("dates").doc(selectedDate).collection("tables").doc(id)
     .update(updateData)
     .then(() => console.log(`✅ Updated ${shop} โต๊ะ ${id} เป็น ${status}`))
     .catch(err => alert("❌ อัปเดตไม่สำเร็จ: " + err.message));
