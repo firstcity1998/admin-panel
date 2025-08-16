@@ -54,13 +54,17 @@
     };
 
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-    const loginSection = document.getElementById("loginSection");
-    const adminPanel = document.getElementById("adminPanel");
-    const adminTitle = document.getElementById("adminTitle");
-    const tableList = document.getElementById("tableList");
+// ✅ กำหนดตัวแปร today ให้ใช้ได้ทุกฟังก์ชัน
+const today = new Date().toISOString().split("T")[0];
+
+const loginSection = document.getElementById("loginSection");
+const adminPanel = document.getElementById("adminPanel");
+const adminTitle = document.getElementById("adminTitle");
+const tableList = document.getElementById("tableList");
+
 
     let shopId = null;
 
@@ -106,7 +110,8 @@
     }
 
     function loadTables(shop) {
-      db.collection("restaurants").doc(shop).collection("tables").onSnapshot(snapshot => {
+      db.collection("restaurants").doc(shop).collection("dates").doc(today).collection("tables")
+.onSnapshot(snapshot => {
         tableList.innerHTML = "";
         snapshot.forEach(doc => {
           tableList.appendChild(renderTable(doc.id, doc.data(), shop));
@@ -133,7 +138,8 @@
     section.appendChild(title);
 
     // ดึงข้อมูลโต๊ะจากร้านนั้น
-    db.collection("restaurants").doc(shop).collection("tables").onSnapshot(snapshot => {
+    db.collection("restaurants").doc(shop).collection("dates").doc(today).collection("tables")
+.onSnapshot(snapshot => {
       snapshot.forEach(doc => {
         section.appendChild(renderTable(doc.id, doc.data(), shop));  // แสดงข้อมูลโต๊ะในร้านนั้น
       });
@@ -183,24 +189,25 @@
     function updateStatus(id, status, shop) {
   const updateData = { status };
 
-  // ถ้าสถานะไม่ใช่ "reserved" ให้ลบ reservedBy และ timestamp
   if (status !== "reserved") {
     updateData.reservedBy = firebase.firestore.FieldValue.delete();
     updateData.timestamp = firebase.firestore.FieldValue.delete();
   } else {
-    // ถ้าสถานะเป็น "reserved" ให้ถามชื่อผู้จอง
     const name = prompt("กรุณาใส่ชื่อผู้จอง:");
-    if (!name) return; // ถ้ายกเลิก prompt หรือไม่ได้กรอกชื่อ
+    if (!name) return;
 
     updateData.reservedBy = { displayName: name };
     updateData.timestamp = firebase.firestore.Timestamp.now();
   }
 
-  // อัปเดตข้อมูลใน Firestore
-  db.collection("restaurants").doc(shop).collection("tables").doc(id).update(updateData)
+  // ✅ อัปเดตที่ path มีวันที่
+  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  db.collection("restaurants").doc(shop).collection("dates").doc(today).collection("tables").doc(id)
+    .update(updateData)
     .then(() => console.log(`✅ Updated ${shop} โต๊ะ ${id} เป็น ${status}`))
     .catch(err => alert("❌ อัปเดตไม่สำเร็จ: " + err.message));
 }
+
 
   </script>
 
