@@ -34,10 +34,18 @@
   </div>
 
   <div id="adminPanel" style="display:none;">
-    <h1 id="adminTitle">กำลังโหลดร้าน...</h1>
-    <button onclick="logout()" style="background-color:#f44336;">ออกจากระบบ</button>
-    <div id="tableList" class="table-list"></div>
+  <h1 id="adminTitle">กำลังโหลดร้าน...</h1>
+  <button onclick="logout()" style="background-color:#f44336;">ออกจากระบบ</button>
+
+  <!-- ✅ ปฏิทินเลือกวัน -->
+  <div style="margin: 20px 0; text-align:center;">
+    <label for="datePicker">เลือกวัน: </label>
+    <input type="date" id="datePicker">
   </div>
+
+  <div id="tableList" class="table-list"></div>
+</div>
+
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -109,45 +117,63 @@ const tableList = document.getElementById("tableList");
       auth.signOut();
     }
 
-    function loadTables(shop) {
-      db.collection("restaurants").doc(shop).collection("dates").doc(today).collection("tables")
-.onSnapshot(snapshot => {
-        tableList.innerHTML = "";
-        snapshot.forEach(doc => {
-          tableList.appendChild(renderTable(doc.id, doc.data(), shop));
-        });
-      });
+    // ✅ ตัวแปรเก็บวันที่ที่เลือก
+let selectedDate = today;
+
+// ✅ ตั้งค่า datePicker ให้เลือกได้สูงสุด 7 วันจากวันนี้
+const datePicker = document.getElementById("datePicker");
+if (datePicker) {
+  const now = new Date();
+  const max = new Date();
+  max.setDate(now.getDate() + 6); // รวมวันนี้ = 7 วัน
+
+  datePicker.min = today;
+  datePicker.max = max.toISOString().split("T")[0];
+  datePicker.value = today;
+
+  datePicker.addEventListener("change", () => {
+    selectedDate = datePicker.value;
+    if (shopId) {
+      loadTables(shopId);
+    } else {
+      loadAllShops();
     }
+  });
+}
 
-   async function loadAllShops() {
-  // ดึงร้านทั้งหมดจาก Firestore
-  const snapshot = await db.collection("restaurants").get(); // ดึงข้อมูลจาก collection "restaurants"
+function loadTables(shop) {
+  db.collection("restaurants").doc(shop).collection("dates").doc(selectedDate).collection("tables")
+    .onSnapshot(snapshot => {
+      tableList.innerHTML = "";
+      snapshot.forEach(doc => {
+        tableList.appendChild(renderTable(doc.id, doc.data(), shop));
+      });
+    });
+}
 
-  // สร้าง array ของชื่อร้าน
-  const shopList = snapshot.docs.map(doc => doc.id);
-  console.log(shopList);
-
-  // เคลียร์ข้อมูลเดิมที่แสดงอยู่
+async function loadAllShops() {
+  const snapshot = await db.collection("restaurants").get();
   tableList.innerHTML = "";
 
-  // วนลูปเพื่อโหลดข้อมูลโต๊ะของแต่ละร้าน
-  shopList.forEach(shop => {
+  snapshot.docs.forEach(doc => {
+    const shop = doc.id;
     const section = document.createElement("div");
     const title = document.createElement("h3");
     title.textContent = `ร้าน: ${shop}`;
     section.appendChild(title);
 
-    // ดึงข้อมูลโต๊ะจากร้านนั้น
-    db.collection("restaurants").doc(shop).collection("dates").doc(today).collection("tables")
-.onSnapshot(snapshot => {
-      snapshot.forEach(doc => {
-        section.appendChild(renderTable(doc.id, doc.data(), shop));  // แสดงข้อมูลโต๊ะในร้านนั้น
+    db.collection("restaurants").doc(shop).collection("dates").doc(selectedDate).collection("tables")
+      .onSnapshot(snapshot => {
+        section.innerHTML = `<h3>ร้าน: ${shop}</h3>`;
+        snapshot.forEach(doc => {
+          section.appendChild(renderTable(doc.id, doc.data(), shop));
+        });
       });
-    });
 
     tableList.appendChild(section);
   });
 }
+
 
 
    function renderTable(id, data, shop) {
