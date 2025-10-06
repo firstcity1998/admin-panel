@@ -185,6 +185,11 @@ async function loadAllShops() {
     ? data.reservedBy.displayName
     : "-";
 
+     // แสดงเบอร์โทรของผู้จอง
+  const reservedPhone = data.status === "reserved" && data.reservedByPhone
+    ? data.reservedByPhone
+    : "-";
+
  // ✅ แปลง timestamp จาก Firestore เป็นวันเวลาแบบไทย
   let timeText = "";
   if (data.status === "reserved" && data.timestamp?.toDate) {
@@ -209,6 +214,7 @@ async function loadAllShops() {
     <div><strong>โต๊ะ ${id}</strong></div>
     <div style="margin: 6px 0;">สถานะ: <b>${data.status}</b></div>
     <div style="font-size: 14px; color: #facc15;">ชื่อผู้จอง: ${reservedName}</div>
+    <div style="font-size: 14px; color: #facc15;">เบอร์โทร: ${reservedPhone}</div> <!-- แสดงเบอร์โทร -->
     ${timeText ? `<div style="font-size: 12px; color: #ccc;">เวลาจอง: ${timeText}</div>` : ""}
     ${bookingDateText ? `<div style="font-size: 12px; color: #ccc;">${bookingDateText}</div>` : ""}
     <button class="status-btn available" onclick="updateStatus('${id}', 'available', '${shop}')">ว่าง</button>
