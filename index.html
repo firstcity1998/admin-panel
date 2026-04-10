@@ -192,9 +192,9 @@ async function loadAllShops() {
     ? data.reservedBy.phone
     : "-";
 
-  const people = data.status === "reserved" && data.reservedBy?.people
-    ? data.reservedBy.people
-    : "-";
+  const people = data.status === "reserved"
+  ? (data.reservedBy?.people || data.people || "-")
+  : "-";
 
   let timeText = "";
   if (data.status === "reserved" && data.timestamp?.toDate) {
